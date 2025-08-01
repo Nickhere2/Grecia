@@ -2,49 +2,48 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>¡Invitación al Cumpleaños de Grecia!</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
     <style>
-        body {
+        * {
             margin: 0;
             padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background: #fde7f0;
-            font-family: 'cursive', 'Comic Sans MS', sans-serif;
+            box-sizing: border-box;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
             overflow: hidden;
-            touch-action: manipulation;
+            font-family: 'cursive', 'Comic Sans MS', sans-serif;
+            background: #fde7f0;
         }
         #gameContainer {
-            position: relative;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            max-width: 500px;
+            max-height: 800px;
+            margin: auto;
             background: white;
             border: 8px solid #F50057;
             border-radius: 20px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
             overflow: hidden;
-            width: 100%;
-            height: 100%;
-            max-width: 500px;
-            max-height: 800px;
-        }
-        .shake-error {
-            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
-        }
-        @keyframes shake {
-          10%, 90% { transform: translate3d(-1px, 0, 0); }
-          20%, 80% { transform: translate3d(2px, 0, 0); }
-          30%, 50%, 70% { transform: translate3d(-3px, 0, 0); }
-          40%, 60% { transform: translate3d(3px, 0, 0); }
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
         canvas {
             display: block;
             width: 100%;
             height: 100%;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
         }
         .overlay {
             position: absolute;
@@ -58,15 +57,12 @@
             align-items: center;
             text-align: center;
             padding: 20px;
-            box-sizing: border-box;
             color: #444;
+            background-color: rgba(255, 255, 255, 0.95);
             transition: opacity 0.5s;
         }
-        #startScreen, #invitacionFinal, #levelTransition {
-            background-color: rgba(255, 255, 255, 0.95);
-        }
         #startButton {
-            font-family: 'cursive', 'Comic Sans MS', sans-serif;
+            font-family: 'cursive', sans-serif;
             font-size: 2em;
             padding: 15px 30px;
             border-radius: 50px;
@@ -85,10 +81,6 @@
         #invitacionFinal, #levelTransition {
             display: none;
         }
-        #levelTransition h1 { font-size: 3em; color: #1A237E; }
-        #invitacionFinal {
-            font-family: 'Arial', sans-serif;
-        }
         #invitacionFinal h1 {
             font-family: 'Pacifico', cursive;
             font-size: 2.8em;
@@ -102,24 +94,9 @@
             margin: 5px 0 15px 0;
             line-height: 1;
         }
-        #invitacionFinal p {
-            font-size: 1.1em;
-            font-weight: bold;
-            margin: 5px 0;
-        }
-        .invitation-details {
-            border-top: 2px dashed #FF80AB;
-            border-bottom: 2px dashed #FF80AB;
-            padding: 15px 0;
-            margin-top: 15px;
-        }
-        .invitation-details strong {
-            color: #F50057;
-        }
         .card-images {
             display: flex;
             justify-content: center;
-            align-items: center;
             gap: 20px;
             margin-bottom: 15px;
         }
@@ -128,7 +105,6 @@
             height: 80px;
             border-radius: 50%;
             border: 4px solid #F50057;
-            background-color: #fff;
             object-fit: cover;
         }
         #prompt {
@@ -152,14 +128,7 @@
             height: 70px;
             cursor: pointer;
             display: none;
-            transition: transform 0.2s, filter 0.2s;
-        }
-        #repeatButton:active {
-            transform: scale(0.9);
-        }
-        #repeatButton.speaking {
-            transform: scale(1.1);
-            filter: drop-shadow(0 0 8px yellow);
+            border-radius: 50%;
         }
         #livesContainer {
             position: absolute;
@@ -167,15 +136,16 @@
             left: 15px;
             display: flex;
             gap: 5px;
+            z-index: 10;
         }
         #livesContainer img {
             width: 40px;
             height: 40px;
-            transition: transform 0.3s, opacity 0.3s;
+            border-radius: 50%;
         }
         #livesContainer img.lost {
-            transform: scale(0);
-            opacity: 0;
+            opacity: 0.3;
+            transform: scale(0.8);
         }
         #contador {
             position: absolute;
@@ -186,6 +156,17 @@
             -webkit-text-stroke: 2px #F50057;
             text-stroke: 2px #F50057;
             display: none;
+            z-index: 10;
+            pointer-events: none;
+        }
+        .shake-error {
+            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-3px, 0, 0); }
+            40%, 60% { transform: translate3d(3px, 0, 0); }
         }
     </style>
 </head>
@@ -670,14 +651,17 @@ window.onload = function() {
     }
 
     function init() {
-        canvas.width = gameContainer.clientWidth;
-        canvas.height = gameContainer.clientHeight;
-        generateBackgroundElements(40);
-        window.addEventListener('resize', () => {
+        function resizeCanvas() {
             canvas.width = gameContainer.clientWidth;
             canvas.height = gameContainer.clientHeight;
             backgroundElements = [];
             generateBackgroundElements(40);
+        }
+
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('orientationchange', () => {
+            setTimeout(resizeCanvas, 200);
         });
 
         // Eventos
