@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>¡Invitación al Cumpleaños de Grecia!</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: #fde7f0;
+            font-family: 'cursive', 'Comic Sans MS', sans-serif;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+        #gameContainer {
+            position: relative;
+            background: white;
+            border: 8px solid #F50057;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+            max-width: 500px;
+            max-height: 800px;
+        }
+        .shake-error {
+            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        @keyframes shake {
+          10%, 90% { transform: translate3d(-1px, 0, 0); }
+          20%, 80% { transform: translate3d(2px, 0, 0); }
+          30%, 50%, 70% { transform: translate3d(-3px, 0, 0); }
+          40%, 60% { transform: translate3d(3px, 0, 0); }
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+            color: #444;
+            transition: opacity 0.5s;
+        }
+        #startScreen, #invitacionFinal, #levelTransition {
+            background-color: rgba(255, 255, 255, 0.95);
+        }
+        #startButton {
+            font-family: 'cursive', 'Comic Sans MS', sans-serif;
+            font-size: 2em;
+            padding: 15px 30px;
+            border-radius: 50px;
+            border: 4px solid #FF80AB;
+            background-color: #F50057;
+            color: white;
+            cursor: pointer;
+            text-shadow: 2px 2px 3px rgba(0,0,0,0.2);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        #invitacionFinal, #levelTransition {
+            display: none;
+        }
+        #levelTransition h1 { font-size: 3em; color: #1A237E; }
+        #invitacionFinal {
+            font-family: 'Arial', sans-serif;
+        }
+        #invitacionFinal h1 {
+            font-family: 'Pacifico', cursive;
+            font-size: 2.8em;
+            color: #F50057;
+            margin: 0;
+        }
+        #invitacionFinal h2 {
+            font-family: 'Pacifico', cursive;
+            font-size: 4em;
+            color: #1A237E;
+            margin: 5px 0 15px 0;
+            line-height: 1;
+        }
+        #invitacionFinal p {
+            font-size: 1.1em;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        .invitation-details {
+            border-top: 2px dashed #FF80AB;
+            border-bottom: 2px dashed #FF80AB;
+            padding: 15px 0;
+            margin-top: 15px;
+        }
+        .invitation-details strong {
+            color: #F50057;
+        }
+        .card-images {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+        .card-images img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 4px solid #F50057;
+            background-color: #fff;
+            object-fit: cover;
+        }
+        #prompt {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0,0,0,0.6);
+            color: white;
+            padding: 10px 25px;
+            border-radius: 20px;
+            font-size: 1.8em;
+            font-weight: bold;
+            display: none;
+        }
+        #repeatButton {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            width: 70px;
+            height: 70px;
+            cursor: pointer;
+            display: none;
+            transition: transform 0.2s, filter 0.2s;
+        }
+        #repeatButton:active {
+            transform: scale(0.9);
+        }
+        #repeatButton.speaking {
+            transform: scale(1.1);
+            filter: drop-shadow(0 0 8px yellow);
+        }
+        #livesContainer {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            display: flex;
+            gap: 5px;
+        }
+        #livesContainer img {
+            width: 40px;
+            height: 40px;
+            transition: transform 0.3s, opacity 0.3s;
+        }
+        #livesContainer img.lost {
+            transform: scale(0);
+            opacity: 0;
+        }
+        #contador {
+            position: absolute;
+            top: 15px;
+            left: 20px;
+            font-size: 2.5em;
+            color: white;
+            -webkit-text-stroke: 2px #F50057;
+            text-stroke: 2px #F50057;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+<div id="gameContainer">
+    <canvas id="gameCanvas"></canvas>
+    <div id="livesContainer">
+        <img src="Grecia.png" alt="Vida 1">
+        <img src="Grecia.png" alt="Vida 2">
+        <img src="Grecia.png" alt="Vida 3">
+    </div>
+    <div id="contador">0 / 3</div>
+    <img id="repeatButton" src="Minnie.png" alt="Repetir audio">
+    <div id="prompt"></div>
+    <div id="startScreen" class="overlay">
+        <img id="startMinnie" src="Minnie.png" alt="Imagen de Minnie" style="width: 50%; max-width: 200px; margin-bottom: 20px;">
+        <h1>¡Ayuda a Minnie!</h1>
+        <p>Explota los globos correctos</p>
+        <button id="startButton">¡Jugar!</button>
+    </div>
+    <div id="levelTransition" class="overlay">
+        <h1 id="levelTitle"></h1>
+    </div>
+    <div id="invitacionFinal" class="overlay">
+        <div class="card-images">
+            <img src="Minnie.png" alt="Minnie">
+            <img src="grecia2.png" alt="Grecia">
+        </div>
+        <h1>¡Estás invitado!</h1>
+        <p>A festejar mi cumple N°3</p>
+        <h2>GRECIA</h2>
+        <div class="invitation-details">
+            <p><strong>Cuándo:</strong> Domingo 3 de Agosto</p>
+            <p><strong>Hora:</strong> 14 a 17 hs</p>
+            <p><strong>Dónde:</strong> Party Time</p>
+            <p>Los Horneros 130, Villa Carlos Paz</p>
+        </div>
+        <button id="restartButton" style="margin-top: 20px; padding: 10px 20px; font-size: 1.2em; background: #F50057; color: white; border: none; border-radius: 10px; cursor: pointer;">¡Jugar de nuevo!</button>
+    </div>
+</div>
+<script>
+window.onload = function() {
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const gameContainer = document.getElementById('gameContainer');
+    const startScreen = document.getElementById('startScreen');
+    const startButton = document.getElementById('startButton');
+    const invitacionFinal = document.getElementById('invitacionFinal');
+    const levelTransition = document.getElementById('levelTransition');
+    const levelTitle = document.getElementById('levelTitle');
+    const contadorDiv = document.getElementById('contador');
+    const repeatButton = document.getElementById('repeatButton');
+    const promptDiv = document.getElementById('prompt');
+    const livesContainer = document.getElementById('livesContainer');
+    const lifeImages = livesContainer.getElementsByTagName('img');
+    const PUNTOS_POR_NIVEL = 3;
+    const NOMBRE_NINA = "Grecia";
+    document.querySelector('#invitacionFinal h2').textContent = NOMBRE_NINA.toUpperCase();
+    let puntaje = 0;
+    let vidas = 3;
+    let nivelActual = 1;
+    let gameStarted = false;
+    let gameOver = false;
+    let globos = [];
+    let particulas = [];
+    let recompensas = [];
+    let backgroundElements = [];
+    let animationId = null;
+    let audioEnabled = false;
+    let isPlayingAudio = false;
+    let audioQueue = [];
+
+    const colores = [ 
+        { nombre: 'rojo', codigo: '#e74c3c', audio: 'rojo.mp3' }, 
+        { nombre: 'azul', codigo: '#3498db', audio: 'azul.mp3' }, 
+        { nombre: 'verde', codigo: '#2ecc71', audio: 'verde.mp3' }, 
+        { nombre: 'amarillo', codigo: '#f1c40f', audio: 'amarillo.mp3' }, 
+        { nombre: 'rosa', codigo: '#ff80ab', audio: 'rosa.mp3' }
+    ];
+    const numeros = [ 
+        { nombre: 'uno', valor: '1', audio: '1.mp3' }, 
+        { nombre: 'dos', valor: '2', audio: '2.mp3' }, 
+        { nombre: 'tres', valor: '3', audio: '3.mp3' }
+    ];
+    let objetivoActual = null;
+
+    // Cargar imágenes
+    const minnieImg = new Image();
+    minnieImg.src = 'Minnie.png';
+    const greciaImg = new Image();
+    greciaImg.src = 'Grecia.png';
+    const volleyBalloonImg = new Image();
+    volleyBalloonImg.src = 'pelota.png';
+    volleyBalloonImg.fallback = false;
+    volleyBalloonImg.onerror = () => {
+        volleyBalloonImg.fallback = true;
+        console.log("⚠️ pelota.png no cargó. Usando círculo de respaldo.");
+    };
+
+    let player = { x: 0, y: 0, width: 0, height: 0, isDragging: false };
+    let opponent = { x: 0, y: 0, width: 0, height: 0 };
+    let volleyBalloon = { x: 0, y: 0, size: 0, dx: 0, dy: 0, gravity: 0.2, inPlay: false };
+
+    // Habilitar audio
+    document.addEventListener('click', function enableAudio() {
+        audioEnabled = true;
+        document.removeEventListener('click', enableAudio);
+    }, { once: true });
+
+    function playAudio(src, onEnded = () => {}) {
+        if (!audioEnabled) {
+            onEnded();
+            return;
+        }
+        if (isPlayingAudio) {
+            audioQueue.push({ src, onEnded });
+            return;
+        }
+        isPlayingAudio = true;
+        const audio = new Audio(src);
+        audio.play().then(() => {
+            audio.onended = () => {
+                isPlayingAudio = false;
+                onEnded();
+                if (audioQueue.length > 0) {
+                    const next = audioQueue.shift();
+                    playAudio(next.src, next.onEnded);
+                }
+            };
+        }).catch(() => {
+            isPlayingAudio = false;
+            onEnded();
+            if (audioQueue.length > 0) {
+                const next = audioQueue.shift();
+                playAudio(next.src, next.onEnded);
+            }
+        });
+    }
+
+    function elegirNuevoObjetivo() {
+        if (nivelActual === 1) {
+            objetivoActual = colores[Math.floor(Math.random() * colores.length)];
+            promptDiv.textContent = objetivoActual.nombre.charAt(0).toUpperCase() + objetivoActual.nombre.slice(1);
+            promptDiv.style.backgroundColor = objetivoActual.codigo;
+        } else if (nivelActual === 2) {
+            objetivoActual = numeros[Math.floor(Math.random() * numeros.length)];
+            promptDiv.textContent = `Número ${objetivoActual.valor}`;
+            promptDiv.style.backgroundColor = '#333';
+        }
+        if (objetivoActual && objetivoActual.audio) {
+            playAudio(objetivoActual.audio);
+        }
+    }
+
+    function generarGlobo() {
+        if (gameOver || nivelActual === 3 || !gameStarted || isPlayingAudio) return;
+        const size = canvas.width * 0.2;
+        const colorInfo = colores[Math.floor(Math.random() * colores.length)];
+        const globo = {
+            x: Math.random() * (canvas.width - size),
+            y: canvas.height + size,
+            size: size,
+            speed: 0.5 + Math.random() * 1,
+            color: colorInfo,
+            type: nivelActual === 1 ? 'color' : 'numero',
+            value: nivelActual === 2 ? numeros[Math.floor(Math.random() * numeros.length)].valor : null
+        };
+        globos.push(globo);
+    }
+
+    function explotar(globo, esCorrecto) {
+        const particulasCount = esCorrecto ? 30 : 20;
+        const color = esCorrecto ? globo.color.codigo : '#888888';
+        for (let i = 0; i < particulasCount; i++) {
+            particulas.push({
+                x: globo.x + globo.size / 2,
+                y: globo.y + globo.size / 2,
+                size: Math.random() * 3 + 1,
+                speedX: (Math.random() - 0.5) * 5,
+                speedY: (Math.random() - 0.5) * 5,
+                color: color,
+                vida: esCorrecto ? 60 : 40
+            });
+        }
+        if (!esCorrecto) {
+            gameContainer.classList.add('shake-error');
+            setTimeout(() => gameContainer.classList.remove('shake-error'), 400);
+        } else {
+            recompensas.push({
+                x: globo.x,
+                y: globo.y,
+                size: globo.size,
+                vida: 60
+            });
+        }
+    }
+
+    function drawImageOrText(ctx, img, text, x, y, width, height) {
+        if (img.complete && img.naturalWidth !== 0 && !img.fallback) {
+            ctx.drawImage(img, x, y, width, height);
+        } else {
+            ctx.fillStyle = '#cccccc';
+            ctx.fillRect(x, y, width, height);
+            ctx.fillStyle = '#000000';
+            ctx.font = `${height * 0.3}px cursive`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text || 'Img', x + width / 2, y + height / 2);
+        }
+    }
+
+    function drawVolleyBall() {
+        if (!volleyBalloon.inPlay) return;
+        if (volleyBalloonImg.fallback || !volleyBalloonImg.complete) {
+            ctx.beginPath();
+            ctx.arc(volleyBalloon.x + volleyBalloon.size/2, volleyBalloon.y + volleyBalloon.size/2, volleyBalloon.size/2, 0, Math.PI * 2);
+            ctx.fillStyle = '#FFD700';
+            ctx.fill();
+            ctx.strokeStyle = '#FF6347';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+        } else {
+            ctx.drawImage(volleyBalloonImg, volleyBalloon.x, volleyBalloon.y, volleyBalloon.size, volleyBalloon.size);
+        }
+    }
+
+    function checkCollision(ball, player) {
+        return ball.x < player.x + player.width &&
+               ball.x + ball.size > player.x &&
+               ball.y < player.y + player.height &&
+               ball.y + ball.size > player.y;
+    }
+
+    function generateBackgroundElements(count) {
+        for (let i = 0; i < count; i++) {
+            backgroundElements.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                radius: Math.random() * 10 + 5,
+                opacity: Math.random() * 0.3 + 0.1,
+                dOpacity: (Math.random() - 0.5) * 0.005
+            });
+        }
+    }
+
+    function drawBackground() {
+        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        gradient.addColorStop(0, '#ffc0cb');
+        gradient.addColorStop(1, '#f8bbd0');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        backgroundElements.forEach(dot => {
+            ctx.beginPath();
+            ctx.arc(dot.x, dot.y, dot.radius, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, 255, 255, ${dot.opacity})`;
+            ctx.fill();
+            dot.opacity += dot.dOpacity;
+            if (dot.opacity > 0.4 || dot.opacity < 0.1) dot.dOpacity *= -1;
+        });
+    }
+
+    function actualizar() {
+        if (gameOver && !gameStarted) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawBackground();
+
+        if (gameStarted && !gameOver) {
+            if (nivelActual === 3) {
+                // Movimiento de Minnie (IA)
+                opponent.x += (volleyBalloon.x - (opponent.x + opponent.width / 2)) * 0.08;
+                opponent.x = Math.max(0, Math.min(canvas.width - opponent.width, opponent.x));
+
+                // Dibujar personajes
+                drawImageOrText(ctx, minnieImg, "Minnie", opponent.x, opponent.y, opponent.width, opponent.height);
+                drawImageOrText(ctx, greciaImg, "Grecia", player.x, player.y, player.width, player.height);
+
+                if (volleyBalloon.inPlay) {
+                    volleyBalloon.x += volleyBalloon.dx;
+                    volleyBalloon.y += volleyBalloon.dy;
+                    volleyBalloon.dy += volleyBalloon.gravity;
+
+                    // Rebote con paredes laterales
+                    if (volleyBalloon.x <= 0 || volleyBalloon.x + volleyBalloon.size >= canvas.width) {
+                        volleyBalloon.dx *= -1;
+                    }
+
+                    // ✅ TOQUE CON GRECIA: suma punto automáticamente
+                    if (checkCollision(volleyBalloon, player)) {
+                        puntaje++;
+                        contadorDiv.textContent = `${puntaje} / ${PUNTOS_POR_NIVEL}`;
+                        playAudio('acierto.mp3');
+                        resetVolleyBalloon();
+                        if (puntaje >= PUNTOS_POR_NIVEL) {
+                            ganarJuego();
+                        }
+                    }
+
+                    // Si cae al suelo
+                    if (volleyBalloon.y > canvas.height) {
+                        puntaje = 0;
+                        contadorDiv.textContent = `0 / ${PUNTOS_POR_NIVEL}`;
+                        resetVolleyBalloon();
+                    }
+
+                    // Dibujar pelota
+                    drawVolleyBall();
+                }
+            } else {
+                const minnieSize = canvas.height * 0.2;
+                drawImageOrText(ctx, minnieImg, "Minnie", canvas.width - minnieSize - 10, canvas.height - minnieSize - 10, minnieSize, minnieSize);
+                globos.forEach(globo => {
+                    globo.y -= globo.speed;
+                    ctx.fillStyle = globo.color.codigo;
+                    ctx.beginPath();
+                    ctx.ellipse(globo.x + globo.size / 2, globo.y + globo.size / 2, globo.size / 2, globo.size / 2 + 10, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.moveTo(globo.x + globo.size / 2, globo.y + globo.size + 20);
+                    ctx.lineTo(globo.x + globo.size / 2 - 5, globo.y + globo.size + 25);
+                    ctx.lineTo(globo.x + globo.size / 2 + 5, globo.y + globo.size + 25);
+                    ctx.fill();
+                    if (globo.type === 'numero') {
+                        ctx.font = `bold ${globo.size * 0.6}px sans-serif`;
+                        ctx.fillStyle = 'white';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(globo.value, globo.x + globo.size / 2, globo.y + globo.size / 2 + 5);
+                    }
+                });
+                globos = globos.filter(globo => globo.y > -globo.size);
+            }
+        }
+
+        // Dibujar efectos
+        particulas.forEach((p, i) => {
+            p.x += p.speedX; p.y += p.speedY; p.vida--;
+            ctx.fillStyle = p.color; ctx.globalAlpha = p.vida / 60;
+            ctx.fillRect(p.x, p.y, p.size, p.size);
+            if (p.vida <= 0) particulas.splice(i, 1);
+        });
+        recompensas.forEach((r, i) => {
+            r.vida--;
+            ctx.globalAlpha = r.vida / 60;
+            const currentSize = r.size * (1 + (60 - r.vida) * 0.005);
+            drawImageOrText(ctx, minnieImg, "Minnie", r.x - (currentSize - r.size) / 2, r.y - (currentSize - r.size) / 2, currentSize, currentSize);
+            if (r.vida <= 0) recompensas.splice(i, 1);
+        });
+        ctx.globalAlpha = 1;
+
+        animationId = requestAnimationFrame(actualizar);
+    }
+
+    function getPointerPosition(event) {
+        const rect = canvas.getBoundingClientRect();
+        const x = (event.touches ? event.touches[0].clientX : event.clientX) - rect.left;
+        const y = (event.touches ? event.touches[0].clientY : event.clientY) - rect.top;
+        return { x, y };
+    }
+
+    function handleInteractionStart(event) {
+        if (nivelActual !== 3 || !gameStarted || gameOver) return;
+        event.preventDefault();
+        const { x, y } = getPointerPosition(event);
+        if (x > player.x && x < player.x + player.width && y > player.y && y < player.y + player.height) {
+            player.isDragging = true;
+        }
+    }
+
+    function handleInteractionMove(event) {
+        if (nivelActual !== 3 || !player.isDragging || !gameStarted || gameOver) return;
+        event.preventDefault();
+        const { x } = getPointerPosition(event);
+        player.x = x - player.width / 2;
+        player.x = Math.max(0, Math.min(canvas.width - player.width, player.x));
+    }
+
+    function handleInteractionEnd() {
+        if (nivelActual !== 3) return;
+        player.isDragging = false;
+    }
+
+    function handleTap(event) {
+        if (!gameStarted || gameOver || nivelActual === 3 || isPlayingAudio) return;
+        event.preventDefault();
+        const { x, y } = getPointerPosition(event);
+        for (let i = globos.length - 1; i >= 0; i--) {
+            const globo = globos[i];
+            const distancia = Math.sqrt(Math.pow(x - (globo.x + globo.size / 2), 2) + Math.pow(y - (globo.y + globo.size / 2), 2));
+            if (distancia < globo.size / 2 + 15) {
+                let esCorrecto = (nivelActual === 1 && globo.color.nombre === objetivoActual.nombre) || (nivelActual === 2 && globo.value === objetivoActual.valor);
+                explotar(globo, esCorrecto);
+                playAudio(esCorrecto ? 'acierto.mp3' : 'error.mp3');
+                if (esCorrecto) {
+                    puntaje++;
+                    if (puntaje >= PUNTOS_POR_NIVEL) {
+                        iniciarSiguienteNivel();
+                    } else {
+                        elegirNuevoObjetivo();
+                    }
+                } else {
+                    vidas--;
+                    actualizarVidas();
+                    if (vidas <= 0) {
+                        reiniciarNivel();
+                    }
+                }
+                globos.splice(i, 1);
+                break;
+            }
+        }
+    }
+
+    function actualizarVidas() {
+        for (let i = 0; i < lifeImages.length; i++) {
+            if (i < vidas) lifeImages[i].classList.remove('lost');
+            else lifeImages[i].classList.add('lost');
+        }
+    }
+
+    function reiniciarNivel() {
+        gameOver = true;
+        setTimeout(() => {
+            vidas = 3;
+            puntaje = 0;
+            actualizarVidas();
+            gameOver = false;
+            elegirNuevoObjetivo();
+        }, 2000);
+    }
+
+    function iniciarSiguienteNivel() {
+        gameOver = true;
+        nivelActual++;
+        puntaje = 0;
+        vidas = 3;
+        actualizarVidas();
+        levelTitle.textContent = nivelActual === 3 ? "¡Nivel Final: Vóley!" : `¡Nivel ${nivelActual}: Los Números!`;
+        levelTransition.style.display = 'flex';
+        setTimeout(() => {
+            levelTransition.style.display = 'none';
+            gameOver = false;
+            if (nivelActual === 3) {
+                setupLevel3();
+            } else {
+                playAudio('nivel2.mp3', () => setTimeout(elegirNuevoObjetivo, 500));
+            }
+        }, 2500);
+    }
+
+    function setupLevel3() {
+        livesContainer.style.display = 'none';
+        contadorDiv.style.display = 'block';
+        contadorDiv.textContent = `0 / ${PUNTOS_POR_NIVEL}`;
+        repeatButton.style.display = 'none';
+        promptDiv.style.display = 'none';
+        player.height = canvas.height * 0.2;
+        player.width = player.height;
+        player.y = canvas.height - player.height - 10;
+        player.x = canvas.width / 2 - player.width / 2;
+        opponent.height = player.height;
+        opponent.width = player.width;
+        opponent.y = 10;
+        opponent.x = canvas.width / 2 - opponent.width / 2;
+        playAudio('nivel3.mp3', resetVolleyBalloon);
+    }
+
+    function resetVolleyBalloon() {
+        volleyBalloon.inPlay = true;
+        volleyBalloon.size = canvas.width * 0.15;
+        volleyBalloon.x = Math.random() * (canvas.width - volleyBalloon.size);
+        volleyBalloon.y = 50;
+        volleyBalloon.dx = (Math.random() - 0.5) * 4;
+        volleyBalloon.dy = 2;
+    }
+
+    function ganarJuego() {
+        gameOver = true;
+        cancelAnimationFrame(animationId);
+        playAudio('fiesta.mp3', () => {
+            setTimeout(() => invitacionFinal.style.display = 'flex', 300);
+        });
+    }
+
+    function init() {
+        canvas.width = gameContainer.clientWidth;
+        canvas.height = gameContainer.clientHeight;
+        generateBackgroundElements(40);
+        window.addEventListener('resize', () => {
+            canvas.width = gameContainer.clientWidth;
+            canvas.height = gameContainer.clientHeight;
+            backgroundElements = [];
+            generateBackgroundElements(40);
+        });
+
+        // Eventos
+        canvas.addEventListener('mousedown', handleInteractionStart);
+        canvas.addEventListener('mousemove', handleInteractionMove);
+        canvas.addEventListener('mouseup', handleInteractionEnd);
+        canvas.addEventListener('touchstart', handleInteractionStart, { passive: false });
+        canvas.addEventListener('touchmove', handleInteractionMove, { passive: false });
+        canvas.addEventListener('touchend', handleInteractionEnd);
+        canvas.addEventListener('click', handleTap);
+        canvas.addEventListener('touchstart', (e) => handleTap(e), { passive: false });
+        repeatButton.addEventListener('click', () => {
+            if (objetivoActual && objetivoActual.audio) {
+                repeatButton.classList.add('speaking');
+                playAudio(objetivoActual.audio, () => repeatButton.classList.remove('speaking'));
+            }
+        });
+        document.getElementById('restartButton').addEventListener('click', () => location.reload());
+        animationId = requestAnimationFrame(actualizar);
+    }
+
+    startButton.addEventListener('click', () => {
+        startScreen.style.display = 'none';
+        gameStarted = true;
+        repeatButton.style.display = 'block';
+        promptDiv.style.display = 'block';
+        actualizarVidas();
+        objetivoActual = colores.find(c => c.nombre === 'rojo') || colores[0];
+        promptDiv.textContent = objetivoActual.nombre.charAt(0).toUpperCase() + objetivoActual.nombre.slice(1);
+        promptDiv.style.backgroundColor = objetivoActual.codigo;
+        audioEnabled = true;
+        playAudio('bienvenida.mp3', () => playAudio(objetivoActual.audio, () => setInterval(generarGlobo, 1500)));
+    });
+
+    init();
+};
+</script>
+</body>
+</html>
